@@ -49,12 +49,20 @@ resource "aws_bedrockagentcore_memory" "customer_support" {
   event_expiry_duration = 7
 }
 
+# Wait for memory to leave UPDATING state before attaching strategies.
+# Without this, parallel strategy creates race and fail with ValidationException.
+resource "time_sleep" "wait_for_memory" {
+  depends_on      = [aws_bedrockagentcore_memory.customer_support]
+  create_duration = "30s"
+}
+
 resource "aws_bedrockagentcore_memory_strategy" "preferences" {
   name        = "CustomerSupportPreferences"
   description = "Captures customer preferences and behavior"
   memory_id   = aws_bedrockagentcore_memory.customer_support.id
   type        = "USER_PREFERENCE"
   namespaces  = ["support/customer/{actorId}/preferences/"]
+  depends_on  = [time_sleep.wait_for_memory]
 }
 
 resource "aws_bedrockagentcore_memory_strategy" "semantic" {
@@ -63,6 +71,7 @@ resource "aws_bedrockagentcore_memory_strategy" "semantic" {
   memory_id   = aws_bedrockagentcore_memory.customer_support.id
   type        = "SEMANTIC"
   namespaces  = ["support/customer/{actorId}/semantic/"]
+  depends_on  = [time_sleep.wait_for_memory]
 }
 
 resource "local_file" "memory_id" {

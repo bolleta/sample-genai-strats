@@ -1,0 +1,36 @@
+# Runtime outputs
+tmp/
+
+# Terraform state (may contain account IDs and ARNs)
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/*.tfplan
+**/.terraform.lock.hcl
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Environment / credentials
+.env
+.env.*
+*.pem
+*.key
+credentials
+
+# IDE
+.vscode/settings.json
+.idea/
+
+# macOS
+.DS_Store
+
+# Claude
+.claude/
+claude.md
