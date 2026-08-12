@@ -12,58 +12,61 @@ Amazon Bedrock AgentCore を使ってエージェントを素早く立ち上げ�
 ### 全体像
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          呼び出し元 (クライアント)                         │
-│             curl / SDK / 別エージェント                                    │
-└──────────────────────────────┬──────────────────────────────────────────┘
-                               │  invoke_agent_runtime (HTTPS)
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                   AgentCore Runtime  (エージェント実行基盤)                 │
-│                                                                         │
-│   agent.py  ──────────────────────────────────────────────────────┐    │
-│   ├── Strands Agent (Claude Sonnet 4.6)                            │    │
-│   ├── system_prompt.py     ← エージェントの役割定義                  │    │
-│   ├── tools/ (Python)      ← ドメイン固有ロジック                    │    │
-│   ├── memory_config.py  ───┼──► AgentCore Memory                  │    │
-│   └── mcp_client.py  ──────┼──► AgentCore Gateway (MCP)           │    │
-│                             │                                      │    │
-│   OTEL (X-Ray + CloudWatch Logs による自動トレース)                  │    │
-└─────────────────────────────┼──────────────────────────────────────┘    │
-                              │                                            │
-          ┌───────────────────┼────────────────────┐                      │
-          │                   │                    │                      │
-          ▼                   ▼                    ▼                      │
-┌──────────────┐  ┌──────────────────┐  ┌──────────────────────┐         │
-│  AgentCore   │  │    AgentCore     │  │   Bedrock Knowledge  │         │
-│   Memory     │  │    Gateway       │  │       Base           │         │
-│              │  │  (MCP プロトコル) │  │                      │         │
-│ ・会話の記憶  │  │  ・ツール公開     │  │ ・S3 ドキュメント     │         │
-│ ・ユーザー   │  │  ・JWT 認証      │  │ ・S3 Vectors インデクス│         │
-│   嗜好の蓄積 │  │  ・Lambda 呼出し  │  │ ・Cohere Embed v3    │         │
-│             │  │                  │  │   (多言語 embedding)  │         │
-│ SEMANTIC    │  │  ┌────────────┐  │  └──────────────────────┘         │
-│ USER_PREF   │  │  │   Lambda   │  │                                    │
-│ 2 strategy  │  │  │  example-  │  │                                    │
-└─────────────┘  │  │    tool    │  │                                    │
-                 │  └────────────┘  │                                    │
-                 │                  │                                    │
-                 │  ┌────────────┐  │                                    │
-                 │  │  Cognito   │  │  ← JWT 発行 (client_credentials)  │
-                 │  │  User Pool │  │                                    │
-                 │  └────────────┘  │                                    │
-                 └──────────────────┘                                    │
-                          │                                              │
-                          ▼                                              │
-                 ┌──────────────────┐                                    │
-                 │  AgentCore       │                                    │
-                 │  Identity        │                                    │
-                 │                  │                                    │
-                 │ ・WorkloadIdentity│ ← Runtime が Gateway を呼ぶ際の    │
-                 │ ・OAuth2          │   認証情報を自動取得               │
-                 │   CredentialProv. │                                    │
-                 └──────────────────┘                                    │
++----------------------------------------------------------------------+
+|  Client  (curl / SDK / another agent)                                |
++----------------------------------------------------------------------+
+       |  invoke_agent_runtime (HTTPS)
+       v
+
++----------------------------------------------------------------------+
+|  AgentCore Runtime  -- エージェント実行基盤                            |
+|                                                                      |
+|    agent.py                                                          |
+|    +-- Strands Agent  (Claude Sonnet 4.6)                            |
+|    +-- system_prompt.py      : エージェントの役割定義                  |
+|    +-- tools/  (Python)      : ドメイン固有ロジック                    |
+|    +-- memory_config.py  ---------> [AgentCore Memory]               |
+|    +-- mcp_client.py     ---------> [AgentCore Gateway]              |
+|    +-- identity_helper.py           (トークン自動取得)                 |
+|                                                                      |
+|    OTEL auto-instrumentation  (X-Ray + CloudWatch Logs)              |
++----------------------------------------------------------------------+
+       |               |                    |
+       v               v                    v
+
++--------------------+  +----------------------+  +----------------------+
+|  AgentCore Memory  |  |  AgentCore Gateway   |  |  Bedrock Knowledge   |
+|                    |  |  (MCP protocol)      |  |  Base                |
+| - conversation     |  | - tool exposure      |  |                      |
+|   recall           |  | - JWT auth           |  | - S3 documents       |
+| - user preferences |  |                      |  | - S3 Vectors index   |
+| - SEMANTIC         |  | +------------------+ |  | - Cohere Embed v3    |
+| - USER_PREFERENCE  |  | |  Lambda tool     | |  |   (multilingual)     |
++--------------------+  | +------------------+ |  +----------------------+
+                        |                      |
+                        | +------------------+ |
+                        | |  Cognito         | |
+                        | |  (JWT issuer)    | |
+                        | +------------------+ |
+                        +----------------------+
+                               |
+                               v
+
+                 +------------------------------------+
+                 |  AgentCore Identity                |
+                 |                                    |
+                 |  - WorkloadIdentity                |
+                 |  - OAuth2 CredentialProvider       |
+                 |    (Gateway token auto-fetch)      |
+                 +------------------------------------+
 ```
+
+**日本語補足:**
+- **AgentCore Runtime**: コンテナ不要。`agent.zip` を S3 に置くだけでデプロイ可能
+- **AgentCore Memory**: 会話をまたいだ記憶の永続化（事実・ユーザー嗜好の2種類）
+- **AgentCore Gateway**: Lambda ツールを MCP プロトコルで公開。Cognito JWT で認証
+- **AgentCore Identity**: Runtime が Gateway を呼ぶ際の OAuth2 トークン取得を自動化
+- **Bedrock Knowledge Base**: S3 ドキュメントをベクトル検索可能にする RAG 基盤
 
 ### コンポーネント一覧
 
@@ -87,31 +90,40 @@ Amazon Bedrock AgentCore を使ってエージェントを素早く立ち上げ�
 ### リクエストフロー（詳細）
 
 ```
-クライアント
-    │
-    │ 1. invoke_agent_runtime(payload={"prompt": "..."})
-    ▼
-AgentCore Runtime
-    │
-    │ 2. agent.py の invoke() を呼び出す
-    ▼
+Client
+    |
+    | 1. invoke_agent_runtime(payload={"prompt": "..."})
+    v
+AgentCore Runtime  -->  agent.py: invoke()
+    |
+    | 2. session_id を新規生成（リクエストごと）
+    v
 Strands Agent
-    ├─ 3a. Memory から過去の会話・嗜好を取得 (retrieval)
-    ├─ 3b. Claude Sonnet 4.6 に system_prompt + user_prompt + memory を送信
-    │
-    │  Claude がツール呼び出しを決定
-    ├─ 4a. Python ツール (例: search_knowledge_base)
-    │       └─► Bedrock Knowledge Base (Cohere embed → S3 Vectors 検索)
-    │
-    ├─ 4b. MCP Gateway ツール (例: example_tool)
-    │       └─► Cognito でトークン取得 (WorkloadIdentity 経由)
-    │       └─► Gateway → Lambda 実行
-    │
-    │ 5. 最終回答をストリーミングで返却
-    ▼
-クライアント
-    │
-    └─ 6. 会話終了後、Memory に事実・嗜好を書き込み (flush)
+    |
+    +-- 3a. Memory retrieval
+    |         past conversations + user preferences
+    |
+    +-- 3b. Claude Sonnet 4.6
+    |         input: system_prompt + user_prompt + memory context
+    |         output: text or tool_use decision
+    |
+    |   [tool_use の場合]
+    |
+    +-- 4a. Python tool  (e.g. search_knowledge_base)
+    |         --> Bedrock Knowledge Base
+    |               Cohere embed query --> S3 Vectors search
+    |
+    +-- 4b. MCP Gateway tool  (e.g. example_tool)
+    |         --> identity_helper: get token via WorkloadIdentity
+    |         --> AgentCore Gateway (JWT auth)
+    |         --> Lambda execution
+    |
+    | 5. stream final response chunks to Client
+    v
+Client
+    |
+    +-- 6. after response: Memory flush
+              write facts + preferences for next session
 ```
 
 ---
