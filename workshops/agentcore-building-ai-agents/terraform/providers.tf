@@ -19,5 +19,7 @@ terraform {
   }
 }
 
-provider "aws" {}
+provider "aws" {
+  region = "ap-northeast-1"
+}
 

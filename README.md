@@ -82,6 +82,32 @@ make run-agent-locally     # ローカルで動作確認
 make invoke-agent          # デプロイ済み Runtime を呼び出す
 ```
 
+## 日本語対応について
+
+このテンプレートは日本語利用を前提に設定済み。
+
+| 設定 | 値 | 理由 |
+|---|---|---|
+| AWSリージョン | `ap-northeast-1` (東京) | デフォルト。`terraform/providers.tf` で変更可 |
+| 推論モデル | `ap.anthropic.claude-sonnet-4-6` | Tokyoリージョンの cross-region inference profile |
+| Embedding モデル | `cohere.embed-multilingual-v3` | 100言語以上対応。Titan v2より日本語精度が高い |
+| チャンクサイズ | 150 tokens (overlap 20%) | 日本語は英語より文字密度が高いため小さめに設定 |
+| システムプロンプト | 日本語ベース | ユーザーの言語に合わせて返答するよう指示済み |
+
+### 他リージョンに変更する場合
+
+`terraform/providers.tf`:
+```hcl
+provider "aws" {
+  region = "us-east-1"   # ← 変更
+}
+```
+
+`src/agent/agent_config.py`:
+```python
+MODEL_ID = "us.anthropic.claude-sonnet-4-6"   # us-east-1 の場合は "us." プレフィックス
+```
+
 ## ファイルの編集不要ゾーン
 
 以下はインフラ配線であり、通常は触らなくてよい:

@@ -29,7 +29,7 @@ resource "aws_iam_role_policy" "bedrock_kb" {
             {
                 Effect   = "Allow"
                 Action   = ["bedrock:InvokeModel"]
-                Resource = "arn:aws:bedrock:${var.region}::foundation-model/amazon.titan-embed-text-v2:0"
+                Resource = "arn:aws:bedrock:${var.region}::foundation-model/cohere.embed-multilingual-v3"
             },
             {
                 Effect = "Allow"
@@ -58,7 +58,7 @@ resource "aws_bedrockagent_knowledge_base" "agent" {
     knowledge_base_configuration {
         type = "VECTOR"
         vector_knowledge_base_configuration {
-            embedding_model_arn = "arn:aws:bedrock:${var.region}::foundation-model/amazon.titan-embed-text-v2:0"
+            embedding_model_arn = "arn:aws:bedrock:${var.region}::foundation-model/cohere.embed-multilingual-v3"
         }
     }
 
@@ -85,9 +85,10 @@ resource "aws_bedrockagent_data_source" "from_s3" {
 
     vector_ingestion_configuration {
         chunking_configuration {
+            # Japanese text is denser than English; smaller chunks improve retrieval precision.
             chunking_strategy = "FIXED_SIZE"
             fixed_size_chunking_configuration {
-                max_tokens         = 200
+                max_tokens         = 150
                 overlap_percentage = 20
             }
         }
