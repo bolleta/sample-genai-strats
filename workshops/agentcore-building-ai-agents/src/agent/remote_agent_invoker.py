@@ -2,6 +2,7 @@ import boto3
 import base64
 import json
 import uuid
+from agent_config import AGENT_NAME
 
 AGENT_RUNTIME_ARN_FILE = "../../tmp/agent_runtime_arn.txt"
 AGENT_RUNTIME_ARN = open(AGENT_RUNTIME_ARN_FILE).read().strip()
@@ -27,7 +28,7 @@ def invoke_remote_agent(prompt: str):
 
 def run():
     print("-" * 20)
-    print("Welcome to the AwesomeCorp Customer Support Agent (remote)")
+    print(f"Welcome to {AGENT_NAME} (remote)")
     print(f"AgentCore Runtime ARN: {AGENT_RUNTIME_ARN}")
     while True:
         print("\n" + "-" * 20)

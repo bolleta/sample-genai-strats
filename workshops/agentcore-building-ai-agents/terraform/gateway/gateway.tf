@@ -16,12 +16,16 @@ resource "aws_iam_role_policy" "gateway_invoke_lambda" {
 
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = "lambda:InvokeFunction"
-      Resource = [
-        aws_lambda_function.tool_check_warranty_status.arn,
-      ]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        # =======================================================================
+        # EDIT: add/replace Lambda ARNs when you add or change gateway tools
+        # =======================================================================
+        Resource = [
+          aws_lambda_function.example_tool.arn,
+        ]
       },
       {
         Effect = "Allow"
@@ -34,17 +38,20 @@ resource "aws_iam_role_policy" "gateway_invoke_lambda" {
           "xray:PutTraceSegments",
           "xray:PutTelemetryRecords"
         ]
-
         Resource = "*"
-    }]
+      }
+    ]
   })
 }
 
-resource "aws_bedrockagentcore_gateway" "customer_support" {
-  name        = "${var.project_name}-customersupport-gw"
-  description = "MCP gateway for customer support tools"
-  role_arn    = aws_iam_role.gateway.arn
-  protocol_type = "MCP"
+# =============================================================================
+# INFRASTRUCTURE — no changes needed here unless you rename the gateway
+# =============================================================================
+resource "aws_bedrockagentcore_gateway" "agent" {
+  name            = "${var.project_name}-gw"
+  description     = "MCP gateway for agent tools"
+  role_arn        = aws_iam_role.gateway.arn
+  protocol_type   = "MCP"
   authorizer_type = "CUSTOM_JWT"
   authorizer_configuration {
     custom_jwt_authorizer {
@@ -54,10 +61,15 @@ resource "aws_bedrockagentcore_gateway" "customer_support" {
   }
 }
 
-resource "aws_bedrockagentcore_gateway_target" "check_warranty_status" {
-  name               = "check-warranty-status"
-  gateway_identifier = aws_bedrockagentcore_gateway.customer_support.gateway_id
-  description        = "Warranty coverage lookup by serial number"
+# =============================================================================
+# EDIT: define one gateway target per Lambda tool.
+# Copy this block to add more tools; update name, description, Lambda ARN,
+# tool_schema name/description, and input properties.
+# =============================================================================
+resource "aws_bedrockagentcore_gateway_target" "example_tool" {
+  name               = "example-tool"
+  gateway_identifier = aws_bedrockagentcore_gateway.agent.gateway_id
+  description        = "Example tool exposed via MCP gateway"
 
   credential_provider_configuration {
     gateway_iam_role {}
@@ -66,28 +78,21 @@ resource "aws_bedrockagentcore_gateway_target" "check_warranty_status" {
   target_configuration {
     mcp {
       lambda {
-        lambda_arn = aws_lambda_function.tool_check_warranty_status.arn
+        lambda_arn = aws_lambda_function.example_tool.arn
 
         tool_schema {
           inline_payload {
-            name        = "check_warranty_status"
-            description = "Check warranty coverage for a product given its serial number. Optionally verifies against the registered customer email."
+            name        = "example_tool"
+            description = "An example tool. Replace with your tool's description."
 
             input_schema {
               type = "object"
 
               property {
-                name        = "serial_number"
+                name        = "input"
                 type        = "string"
-                description = "Product serial number to look up"
+                description = "Input to the tool"
                 required    = true
-              }
-
-              property {
-                name        = "customer_email"
-                type        = "string"
-                description = "Customer email address to verify ownership (optional)"
-                required    = false
               }
             }
           }
@@ -98,24 +103,24 @@ resource "aws_bedrockagentcore_gateway_target" "check_warranty_status" {
 }
 
 resource "local_file" "gateway_url" {
-  content  = aws_bedrockagentcore_gateway.customer_support.gateway_url
+  content  = aws_bedrockagentcore_gateway.agent.gateway_url
   filename = "${path.root}/../tmp/gateway_url.txt"
 }
 
 resource "local_file" "gateway_id" {
-  content  = aws_bedrockagentcore_gateway.customer_support.gateway_id
+  content  = aws_bedrockagentcore_gateway.agent.gateway_id
   filename = "${path.root}/../tmp/gateway_id.txt"
 }
 
 resource "local_file" "gateway_arn" {
-  content  = aws_bedrockagentcore_gateway.customer_support.gateway_arn
+  content  = aws_bedrockagentcore_gateway.agent.gateway_arn
   filename = "${path.root}/../tmp/gateway_arn.txt"
 }
 
 output "gateway_url" {
-  value = aws_bedrockagentcore_gateway.customer_support.gateway_url
+  value = aws_bedrockagentcore_gateway.agent.gateway_url
 }
 
 output "gateway_id" {
-  value = aws_bedrockagentcore_gateway.customer_support.gateway_id
+  value = aws_bedrockagentcore_gateway.agent.gateway_id
 }

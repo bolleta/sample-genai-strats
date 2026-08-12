@@ -13,15 +13,12 @@ resource "aws_s3_bucket_public_access_block" "kb_spirce" {
     restrict_public_buckets = true
 }
 
-# --- Upload knowledge base documents (after KB resources was created)
+# =============================================================================
+# EDIT: replace with your own document filenames under knowledge-base/
+# =============================================================================
 locals {
     kb_documents = toset([
-        "troubleshooting-guide.txt",
-        "laptop-maintenance-guide.txt",
-        "smartphone-setup-guide.txt",
-        "monitor-calibration-guide.txt",
-        "wireless-connectivity-guide.txt",
-        "warranty-service-guide.txt",
+        "example-doc.txt",
     ])
 }
 

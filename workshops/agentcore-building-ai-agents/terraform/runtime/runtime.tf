@@ -78,7 +78,7 @@ resource "aws_bedrockagentcore_agent_runtime" "agent" {
   environment_variables = {
     AGENT_ZIP_ETAG           = filemd5("${path.root}/../tmp/agent_package/agent.zip")
     MEMORY_ID                = var.agentcore_memory_id
-    TECH_SUPPORT_KB_ID       = var.tech_support_knowledgebase_id
+    KNOWLEDGE_BASE_ID        = var.knowledge_base_id
     GATEWAY_URL              = var.gateway_url
     COGNITO_SCOPE            = var.cognito_scope
     WORKLOAD_ID_NAME         = var.workload_identity_name

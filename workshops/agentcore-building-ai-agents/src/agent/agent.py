@@ -3,26 +3,30 @@ import opentelemetry.instrumentation.auto_instrumentation
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
 from strands.models import BedrockModel
-from tools.return_policy import get_return_policy
-from tools.product_info import get_product_info
-from tools.tech_support import get_technical_support
 from system_prompt import SYSTEM_PROMPT
 from memory_config import get_session_manager
+from agent_config import AGENT_NAME, MODEL_ID
 import asyncio
 import uuid
 from logger import get_logger
 from mcp_client import mcp_tools_list
 import os
 
+# =============================================================================
+# TOOLS — replace or extend with your own @tool functions
+# =============================================================================
+from tools.example_lookup import example_lookup
+from tools.knowledge_base import search_knowledge_base
+
 l = get_logger(__name__)
 
-model = BedrockModel(model_id="us.anthropic.claude-sonnet-4-6")
+model = BedrockModel(model_id=MODEL_ID)
 
+# Add / remove tools here. mcp_tools_list wires in gateway tools automatically.
 tools = [
-    get_return_policy, 
-    get_product_info, 
-    get_technical_support,
-    mcp_tools_list
+    example_lookup,
+    search_knowledge_base,
+    *mcp_tools_list,
 ]
 
 session_id = str(uuid.uuid4())
@@ -34,7 +38,7 @@ async def invoke(payload, _context=None):
 
     l.info(f"ℹ️ user_prompt={user_prompt}")
 
-    session_manager=get_session_manager(session_id)
+    session_manager = get_session_manager(session_id)
 
     agent = Agent(
         model=model,
@@ -55,7 +59,7 @@ async def invoke(payload, _context=None):
 
 async def run_locally_async():
     print("-" * 20)
-    print("Welcome to the AwesomeCorp Customer Support Agent")
+    print(f"Welcome to {AGENT_NAME} (local)")
     while True:
         print("\n" + "-" * 20)
         prompt = input("User prompt (type 'exit' to quit): ").strip()
@@ -64,7 +68,7 @@ async def run_locally_async():
         if not prompt:
             continue
         async for text_chunk in invoke({"prompt": prompt}):
-            print(text_chunk , end="", flush=True)
+            print(text_chunk, end="", flush=True)
         print()
 
 if __name__ == "__main__":

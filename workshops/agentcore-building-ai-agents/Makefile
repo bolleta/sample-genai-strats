@@ -20,7 +20,7 @@ destroy:
 
 run-agent-locally:
 	@echo "Run agent locally..."
-	$(eval TECH_SUPPORT_KB_ID := $(shell cat ./tmp/tech_support_kb_id.txt))
+	$(eval KNOWLEDGE_BASE_ID := $(shell cat ./tmp/knowledge_base_id.txt))
 	$(eval MEMORY_ID := $(shell cat ./tmp/memory_id.txt))
 	$(eval GATEWAY_URL := $(shell cat ./tmp/gateway_url.txt))
 	$(eval COGNITO_CLIENT_ID := $(shell cat ./tmp/cognito_client_id.txt))
@@ -31,7 +31,7 @@ run-agent-locally:
 	$(eval CREDENTIAL_PROVIDER_NAME := $(shell cat ./tmp/credential_provider_name.txt))
 	
 	cd src/agent && \
-		TECH_SUPPORT_KB_ID=$(TECH_SUPPORT_KB_ID) \
+		KNOWLEDGE_BASE_ID=$(KNOWLEDGE_BASE_ID) \
 		MEMORY_ID=$(MEMORY_ID) \
 		GATEWAY_URL=$(GATEWAY_URL) \
 		COGNITO_CLIENT_ID=$(COGNITO_CLIENT_ID) \

@@ -43,42 +43,47 @@ locals {
   project_name_underscored = replace(var.project_name, "-", "_")
 }
 
-resource "aws_bedrockagentcore_memory" "customer_support" {
-  name                  = "${local.project_name_underscored}_customer_support"
-  description           = "Customer support agent memory"
+# =============================================================================
+# EDIT: update name, description, and namespace paths to match your agent.
+# Namespace paths must match MEMORY_NAMESPACE_PREFIX in src/agent/agent_config.py.
+# =============================================================================
+
+resource "aws_bedrockagentcore_memory" "agent" {
+  name                  = "${local.project_name_underscored}_memory"
+  description           = "Agent memory"
   event_expiry_duration = 7
 }
 
 # Wait for memory to leave UPDATING state before attaching strategies.
 # Without this, parallel strategy creates race and fail with ValidationException.
 resource "time_sleep" "wait_for_memory" {
-  depends_on      = [aws_bedrockagentcore_memory.customer_support]
+  depends_on      = [aws_bedrockagentcore_memory.agent]
   create_duration = "30s"
 }
 
 resource "aws_bedrockagentcore_memory_strategy" "preferences" {
-  name        = "CustomerSupportPreferences"
-  description = "Captures customer preferences and behavior"
-  memory_id   = aws_bedrockagentcore_memory.customer_support.id
+  name        = "AgentPreferences"
+  description = "Captures user preferences and behavior"
+  memory_id   = aws_bedrockagentcore_memory.agent.id
   type        = "USER_PREFERENCE"
   namespaces  = ["support/customer/{actorId}/preferences/"]
   depends_on  = [time_sleep.wait_for_memory]
 }
 
 resource "aws_bedrockagentcore_memory_strategy" "semantic" {
-  name        = "CustomerSupportSemantic"
-  description = "Stores facts from customer support conversations"
-  memory_id   = aws_bedrockagentcore_memory.customer_support.id
+  name        = "AgentSemantic"
+  description = "Stores facts from conversations"
+  memory_id   = aws_bedrockagentcore_memory.agent.id
   type        = "SEMANTIC"
   namespaces  = ["support/customer/{actorId}/semantic/"]
   depends_on  = [time_sleep.wait_for_memory]
 }
 
 resource "local_file" "memory_id" {
-  content  = aws_bedrockagentcore_memory.customer_support.id
+  content  = aws_bedrockagentcore_memory.agent.id
   filename = "${path.root}/../tmp/memory_id.txt"
 }
 
 output "memory_id" {
-  value = aws_bedrockagentcore_memory.customer_support.id
+  value = aws_bedrockagentcore_memory.agent.id
 }

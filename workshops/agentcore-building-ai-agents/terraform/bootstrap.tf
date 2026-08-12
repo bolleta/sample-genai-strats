@@ -9,8 +9,12 @@ resource "random_string" "prefix" {
 }
 
 locals {
-  prefix             = random_string.prefix.id
-  project_name_short = "building-ai-agents"
+  prefix = random_string.prefix.id
+
+  # ==========================================================================
+  # EDIT: change project_name_short to identify your agent
+  # ==========================================================================
+  project_name_short = "my-agent"
   project_name       = "${local.prefix}-${local.project_name_short}"
 }
 

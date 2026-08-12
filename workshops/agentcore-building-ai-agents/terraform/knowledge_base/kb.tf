@@ -51,8 +51,8 @@ resource "aws_iam_role_policy" "bedrock_kb" {
     })
 }
 
-resource "aws_bedrockagent_knowledge_base" "tech_support" {
-    name     = "${var.project_name}-tech-support"
+resource "aws_bedrockagent_knowledge_base" "agent" {
+    name     = "${var.project_name}-kb"
     role_arn = aws_iam_role.bedrock_kb.arn
 
     knowledge_base_configuration {
@@ -73,8 +73,8 @@ resource "aws_bedrockagent_knowledge_base" "tech_support" {
 }
 
 resource "aws_bedrockagent_data_source" "from_s3" {
-    knowledge_base_id = aws_bedrockagent_knowledge_base.tech_support.id
-    name              = "${var.project_name}-from-s3"
+    knowledge_base_id = aws_bedrockagent_knowledge_base.agent.id
+    name              = "${var.project_name}-kb-s3"
 
     data_source_configuration {
         type = "S3"
@@ -99,25 +99,25 @@ resource "null_resource" "kb_sync" {
     triggers = {
         # Re-run whenever any document changes or the data source is recreated
         data_source_id    = aws_bedrockagent_data_source.from_s3.id
-        knowledge_base_id = aws_bedrockagent_knowledge_base.tech_support.id
+        knowledge_base_id = aws_bedrockagent_knowledge_base.agent.id
         docs_hash         = local.kb_source_docs_hash
     }
 
     provisioner "local-exec" {
         command = <<-EOT
             aws bedrock-agent start-ingestion-job \
-                --knowledge-base-id ${aws_bedrockagent_knowledge_base.tech_support.id} \
+                --knowledge-base-id ${aws_bedrockagent_knowledge_base.agent.id} \
                 --data-source-id ${aws_bedrockagent_data_source.from_s3.data_source_id} 
         EOT
     }
 
-    depends_on = [aws_s3_object.kb_docs, aws_bedrockagent_knowledge_base.tech_support]
+    depends_on = [aws_s3_object.kb_docs, aws_bedrockagent_knowledge_base.agent]
 }
 
 
 resource "local_file" "kb_id" {
-    content  = aws_bedrockagent_knowledge_base.tech_support.id
-    filename = "${path.root}/../tmp/tech_support_kb_id.txt"
+    content  = aws_bedrockagent_knowledge_base.agent.id
+    filename = "${path.root}/../tmp/knowledge_base_id.txt"
 }
 
 output "kb_input_bucket_name" {
@@ -125,5 +125,5 @@ output "kb_input_bucket_name" {
 }
 
 output "kb_id" {
-    value = aws_bedrockagent_knowledge_base.tech_support.id
+    value = aws_bedrockagent_knowledge_base.agent.id
 }
