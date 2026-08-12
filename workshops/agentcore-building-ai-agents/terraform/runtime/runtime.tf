@@ -25,20 +25,19 @@ resource "aws_iam_role_policy" "agent" {
       {
         Effect = "Allow"
         Action = [
-          # To subscribe to Bedrock Models
-          "aws-marketplace:Subscribe",
-          "aws-marketplace:ViewSubscriptions",
-          "aws-marketplace:Unsubscribe",
-
-          # To invoke Bedrock Models
+          # Bedrock model invocation
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream",
-
-          # To use Bedrock Knowledge Base and AgentCore Memory
-          "bedrock:*",
-          "bedrock-agentcore:*",
-
-          # To send telemetry to CloudWatch
+          # Knowledge Base retrieval
+          "bedrock:Retrieve",
+          "bedrock:RetrieveAndGenerate",
+          # AgentCore Memory read/write
+          "bedrock-agentcore:GetMemory",
+          "bedrock-agentcore:PutMemoryEvent",
+          "bedrock-agentcore:SearchMemory",
+          # AgentCore Runtime self-invocation (for multi-agent patterns)
+          "bedrock-agentcore:InvokeAgentRuntime",
+          # CloudWatch + X-Ray telemetry
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents",
@@ -105,13 +104,13 @@ resource "local_file" "agent_runtime_arn" {
   filename = "${path.root}/../tmp/agent_runtime_arn.txt"
 }
 
-# output "runtime_url" {
-#   value = local.agent_runtime_url
-# }
+output "runtime_url" {
+  value = local.agent_runtime_url
+}
 
-# resource "local_file" "agent_runtime_url" {
-#   content  = local.agent_runtime_url
-#   filename = "${path.root}/../tmp/agent_runtime_url.txt"
-# }
+resource "local_file" "agent_runtime_url" {
+  content  = local.agent_runtime_url
+  filename = "${path.root}/../tmp/agent_runtime_url.txt"
+}
 
 

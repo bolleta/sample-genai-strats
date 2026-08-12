@@ -79,8 +79,7 @@ test-gateway:
 		| jq .
 
 build-agent-package:
-# 	rm -rf ./tmp/agent_package
-# 	rm -rf ./tmp/agent_package/agent.zip
+	rm -rf ./tmp/agent_package
 	mkdir -p ./tmp
 	cd src/agent && \
 		uv pip install \
@@ -97,7 +96,7 @@ invoke-agent:
 	$(eval AGENT_RUNTIME_ARN := $(shell cat ./tmp/agent_runtime_arn.txt))
 	$(info > AGENT_RUNTIME_ARN=$(AGENT_RUNTIME_ARN))
 
-	$(eval PROMPT := My headphones are broken, whats the return policy?)
+	$(eval PROMPT := こんにちは。このエージェントは何ができますか？)
 	$(eval PAYLOAD := $(shell echo '{"prompt":"$(PROMPT)"}' | base64))
 
 	@echo ""
@@ -114,6 +113,16 @@ invoke-agent:
 test-remote-agent:
 	@echo "Testing remote agent..."
 	cd src/agent && uv run remote_agent_invoker.py
+
+status:
+	@echo "=== Deployed resource IDs ==="
+	@printf "KNOWLEDGE_BASE_ID      : "; cat ./tmp/knowledge_base_id.txt 2>/dev/null || echo "(not deployed)"
+	@printf "MEMORY_ID              : "; cat ./tmp/memory_id.txt 2>/dev/null || echo "(not deployed)"
+	@printf "GATEWAY_URL            : "; cat ./tmp/gateway_url.txt 2>/dev/null || echo "(not deployed)"
+	@printf "AGENT_RUNTIME_ARN      : "; cat ./tmp/agent_runtime_arn.txt 2>/dev/null || echo "(not deployed)"
+	@printf "AGENT_RUNTIME_URL      : "; cat ./tmp/agent_runtime_url.txt 2>/dev/null || echo "(not deployed)"
+	@printf "WORKLOAD_IDENTITY_NAME : "; cat ./tmp/workload_identity_name.txt 2>/dev/null || echo "(not deployed)"
+	@printf "COGNITO_TOKEN_ENDPOINT : "; cat ./tmp/cognito_token_endpoint.txt 2>/dev/null || echo "(not deployed)"
 
 
 

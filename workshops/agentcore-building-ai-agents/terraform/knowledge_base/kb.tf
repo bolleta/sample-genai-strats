@@ -85,7 +85,18 @@ resource "aws_bedrockagent_data_source" "from_s3" {
 
     vector_ingestion_configuration {
         chunking_configuration {
-            # Japanese text is denser than English; smaller chunks improve retrieval precision.
+            # FIXED_SIZE: 均一なチャンク。短い FAQ や箇条書きドキュメントに向く。
+            # 日本語は英語より文字密度が高いため max_tokens を小さめに設定。
+            #
+            # 長文ドキュメント（技術仕様書・マニュアルなど）では HIERARCHICAL の方が
+            # 検索精度が上がることがある。切り替え例:
+            #
+            #   chunking_strategy = "HIERARCHICAL"
+            #   hierarchical_chunking_configuration {
+            #     level_configuration { max_tokens = 1500 }  # 親チャンク
+            #     level_configuration { max_tokens = 150  }  # 子チャンク（検索対象）
+            #     overlap_tokens = 30
+            #   }
             chunking_strategy = "FIXED_SIZE"
             fixed_size_chunking_configuration {
                 max_tokens         = 150

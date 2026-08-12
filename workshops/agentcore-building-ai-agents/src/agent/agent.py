@@ -29,12 +29,13 @@ tools = [
     *mcp_tools_list,
 ]
 
-session_id = str(uuid.uuid4())
-
 app = BedrockAgentCoreApp()
 @app.entrypoint
 async def invoke(payload, _context=None):
-    user_prompt = payload.get("prompt", "Hey there!")
+    # Generate a new session_id per request so each invocation gets its own
+    # memory window. A module-level id would share memory across all callers.
+    session_id = str(uuid.uuid4())
+    user_prompt = payload.get("prompt", "こんにちは！")
 
     l.info(f"ℹ️ user_prompt={user_prompt}")
 
