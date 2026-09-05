@@ -5,6 +5,24 @@ Amazon Bedrock AgentCore を使ってエージェントを素早く立ち上げ�
 
 > 元ワークショップ: [Building AI Agents on AgentCore](https://catalog.us-east-1.prod.workshops.aws/workshops/05695036-0049-4114-a660-f15071df92dc/en-US)
 
+
+## Note: this work has moved
+
+This fork was where I customized the upstream AgentCore workshops. The work has
+since been extracted into a standalone repository with tests and CI:
+
+**→ [bolleta/agentcore-agent-template-jp](https://github.com/bolleta/agentcore-agent-template-jp)**
+
+A deployable Terraform template for Amazon Bedrock AgentCore agents, tuned for
+ap-northeast-1 (Tokyo) and Japanese workloads. What changed relative to upstream —
+all five Terraform modules wired and deployable, three defects fixed, IAM narrowed
+from `bedrock:*` to an explicit action list, multilingual embeddings, and a
+consistency test suite — is described in that repository's README.
+
+This fork is kept for history. The upstream project is
+[aws-samples/sample-genai-strats](https://github.com/aws-samples/sample-genai-strats)
+(MIT-0, © Amazon.com, Inc.); its LICENSE and copyright notice are retained unchanged.
+
 ---
 
 ## アーキテクチャ
